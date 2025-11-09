@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>EHS 10-Day Forecast</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      --table-border: rgba(0, 0, 0, 0.1);
+      --chip-bg: rgba(0, 0, 0, 0.08);
+      --chip-text: #1f2933;
+    }
+    body {
+      margin: 0;
+      padding: 2rem;
+      background: radial-gradient(circle at top, #0f172a, #020617);
+      color: #f8fafc;
+      line-height: 1.4;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+    .meta {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-bottom: 1.5rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      color: #0f172a;
+      border-radius: 18px;
+      padding: 1.5rem;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.02em;
+    }
+    .sparkline {
+      margin: 1rem 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.92rem;
+      margin-top: 0.5rem;
+    }
+    caption {
+      text-align: left;
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: rgba(15, 23, 42, 0.9);
+      color: #e2e8f0;
+      text-align: left;
+      padding: 0.45rem 0.4rem;
+      font-weight: 600;
+    }
+    tbody td {
+      padding: 0.5rem 0.4rem;
+      border-bottom: 1px solid var(--table-border);
+      vertical-align: middle;
+    }
+    tbody tr:nth-child(odd) {
+      background: rgba(15, 23, 42, 0.02);
+    }
+    td.numeric {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: var(--chip-bg);
+      color: var(--chip-text);
+    }
+    .chip.danger {
+      background: rgba(220, 38, 38, 0.15);
+      color: #b91c1c;
+    }
+    .chip.warn {
+      background: rgba(251, 191, 36, 0.25);
+      color: #92400e;
+    }
+    .chip.info {
+      background: rgba(59, 130, 246, 0.18);
+      color: #1d4ed8;
+    }
+    .legend {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: rgba(15, 23, 42, 0.8);
+    }
+    .sources {
+      font-size: 0.8rem;
+      color: rgba(15, 23, 42, 0.75);
+    }
+    .no-data {
+      padding: 2rem;
+      text-align: center;
+      font-weight: 600;
+      border: 1px dashed rgba(148, 163, 184, 0.7);
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>EHS 10-Day Forecast — Home &amp; Work</h1>
+  <div class="meta">Generated {{ generated_at.astimezone().strftime('%Y-%m-%d %H:%M %Z') }} · Sources OK: {{ meta.get('sources_ok_display') }} · Sources Failed: {{ meta.get('sources_failed_display') }}</div>
+  <div class="grid">
+    {% for site in [ ('Home', home), ('Work', work) ] %}
+      <section class="card" aria-label="{{ site[0] }} outlook">
+        <h2>{{ site[0] }}</h2>
+        <div class="sparkline">
+          {% if site[1].spark_high.d %}
+            <svg width="100%" height="70" viewBox="0 0 240 56" role="img" aria-label="Temperature trend">
+              <path d="{{ site[1].spark_low.d }}" fill="none" stroke="rgba(59,130,246,0.7)" stroke-width="2.5" />
+              <path d="{{ site[1].spark_high.d }}" fill="none" stroke="rgba(239,68,68,0.85)" stroke-width="2.5" />
+            </svg>
+          {% endif %}
+        </div>
+        {% set rows = site[1].rows %}
+        {% if rows %}
+        <table role="table" aria-label="{{ site[0] }} forecast table">
+          <caption>{{ site[0] }} — 10 day outlook</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col" class="numeric">High</th>
+              <th scope="col" class="numeric">Low</th>
+              <th scope="col" class="numeric">PoP</th>
+              <th scope="col">Precip</th>
+              <th scope="col">Notes</th>
+              <th scope="col">Heat</th>
+              {% if site[0] == 'Work' %}<th scope="col">Freeze</th>{% endif %}
+              <th scope="col">Sources</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td>{{ row.label }} {% if row.low_confidence %}<span class="chip warn">Low Confidence</span>{% endif %}</td>
+              <td class="numeric" style="{{ temp_style(row.high_f, 'high') }}">{{ format_temp(row.high_f) }}</td>
+              <td class="numeric" style="{{ temp_style(row.low_f, 'low') }}">{{ format_temp(row.low_f) }}</td>
+              <td class="numeric">{{ format_pop(row.pop_pct) }}</td>
+              <td>
+                {% if row.precip_type %}<span class="chip info">{{ row.precip_type }}</span>{% endif %}
+              </td>
+              <td>{{ row.precip_notes or row.heat_guidance.get('hydration_cups_per_min') }}</td>
+              <td>
+                {% if row.heat_category %}
+                  <div class="chip danger">{{ row.heat_category }}</div>
+                  <div class="sources">Work/Rest: {{ row.heat_guidance.get('work_rest_min') }} · Hydration: {{ row.heat_guidance.get('hydration_cups_per_min') }}</div>
+                {% else %}
+                  <div class="sources">Baseline</div>
+                {% endif %}
+              </td>
+              {% if site[0] == 'Work' %}
+              <td>
+                {% if row.freeze_risk_badge %}
+                  <div class="chip info">{{ row.freeze_risk_badge }}</div>
+                  <div class="sources">{{ row.freeze_guidance }}</div>
+                {% else %}
+                  <div class="sources">—</div>
+                {% endif %}
+              </td>
+              {% endif %}
+              <td>
+                <div class="sources">{{ row.sources | join(', ') }}</div>
+                <div class="sources">{{ row.sources_count }} src · {{ row.lightning_note }}</div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <div class="no-data">No data available — see <a href="https://www.weather.gov" target="_blank" rel="noopener">NWS</a></div>
+        {% endif %}
+        {% if site[0] == 'Work' %}
+        <div class="legend">
+          Freeze Legend:
+          <ul>
+            <li>Frost: cover sensitive instruments; slip-trip watch.</li>
+            <li>Freeze: drain/bleed lines; heat-trace critical runs; salt walkways.</li>
+            <li>Hard Freeze: suspend liquid transfers; lockout icy elevations; warm-up 15-on/45-off.</li>
+          </ul>
+        </div>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+</body>
+</html>

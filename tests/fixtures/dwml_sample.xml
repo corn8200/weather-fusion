@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dwml>
+  <data>
+    <time-layout>
+      <layout-key>k-p24h-n3-1</layout-key>
+      <start-valid-time>2024-05-01T06:00:00-04:00</start-valid-time>
+      <start-valid-time>2024-05-02T06:00:00-04:00</start-valid-time>
+      <start-valid-time>2024-05-03T06:00:00-04:00</start-valid-time>
+    </time-layout>
+    <time-layout>
+      <layout-key>k-p12h-n6-1</layout-key>
+      <start-valid-time>2024-05-01T06:00:00-04:00</start-valid-time>
+      <start-valid-time>2024-05-01T18:00:00-04:00</start-valid-time>
+      <start-valid-time>2024-05-02T06:00:00-04:00</start-valid-time>
+      <start-valid-time>2024-05-02T18:00:00-04:00</start-valid-time>
+      <start-valid-time>2024-05-03T06:00:00-04:00</start-valid-time>
+      <start-valid-time>2024-05-03T18:00:00-04:00</start-valid-time>
+    </time-layout>
+    <parameters applicable-location="point1">
+      <temperature type="maximum" units="Fahrenheit" time-layout="k-p24h-n3-1">
+        <value>78</value>
+        <value>81</value>
+        <value>74</value>
+      </temperature>
+      <temperature type="minimum" units="Fahrenheit" time-layout="k-p24h-n3-1">
+        <value>58</value>
+        <value>60</value>
+        <value>52</value>
+      </temperature>
+      <probability-of-precipitation type="12 hour" units="percent" time-layout="k-p12h-n6-1">
+        <value>20</value>
+        <value>40</value>
+        <value>50</value>
+        <value>60</value>
+        <value>30</value>
+        <value>10</value>
+      </probability-of-precipitation>
+      <weather time-layout="k-p12h-n6-1">
+        <value weather-summary="Chance Rain">
+          <weather-conditions weather-type="rain" coverage="chance" intensity="light" />
+        </value>
+        <value weather-summary="Rain Likely">
+          <weather-conditions weather-type="rain" coverage="likely" intensity="moderate" />
+        </value>
+        <value weather-summary="Snow Possible">
+          <weather-conditions weather-type="snow" coverage="chance" intensity="light" />
+        </value>
+        <value weather-summary="Freezing Rain">
+          <weather-conditions weather-type="freezing_rain" coverage="likely" intensity="moderate" />
+        </value>
+        <value weather-summary="Clear" />
+        <value weather-summary="Clear" />
+      </weather>
+      <wordedForecast time-layout="k-p12h-n6-1">
+        <text>Sunny, breezy afternoon.</text>
+        <text>Showers likely overnight.</text>
+        <text>Snow mixing with rain in the morning.</text>
+        <text>Freezing drizzle possible with gusty winds.</text>
+        <text>Calm and pleasant.</text>
+        <text>Clear skies.</text>
+      </wordedForecast>
+    </parameters>
+  </data>
+</dwml>
