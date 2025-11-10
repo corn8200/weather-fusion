@@ -83,6 +83,12 @@ def _env_float(key: str, default: float) -> float:
     return float(value)
 
 
+def _cli_or_env_float(cli_value: Any | None, env_key: str, default: float) -> float:
+    if cli_value is not None:
+        return float(cli_value)
+    return _env_float(env_key, default)
+
+
 def _maybe_read_cached_coords(path: Path) -> Optional[tuple[float, float]]:
     if not path.exists():
         return None
@@ -135,8 +141,8 @@ def load_settings(cli_args: dict[str, Any] | None = None) -> AppSettings:
 
     home = SiteSettings(
         name=cli_args.get("place_home") or os.getenv("PLACE_HOME", "Home"),
-        latitude=_env_float("HOME_LAT", float(cli_args.get("home_lat", 39.3381))),
-        longitude=_env_float("HOME_LON", float(cli_args.get("home_lon", -77.7925))),
+        latitude=_cli_or_env_float(cli_args.get("home_lat"), "HOME_LAT", 39.3381),
+        longitude=_cli_or_env_float(cli_args.get("home_lon"), "HOME_LON", -77.7925),
     )
 
     work_lat = cli_args.get("work_lat") or os.getenv("WORK_LAT")
