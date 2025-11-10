@@ -78,7 +78,7 @@ def _env_int(key: str, default: int) -> int:
 
 def _env_float(key: str, default: float) -> float:
     value = os.getenv(key)
-    if value is None:
+    if value is None or value.strip() == "":
         return default
     return float(value)
 
