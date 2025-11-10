@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional
-from urllib.parse import parse_qs, urlparse, quote_plus
+from urllib.parse import parse_qs, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -110,7 +110,6 @@ def _resolve_work_coords(address: str, out_dir: Path, session: requests.Session)
     if cached:
         return cached
 
-    query = quote_plus(address)
     resp = session.get(ZIPCITY_URL, params={"inputstring": address}, timeout=30)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
