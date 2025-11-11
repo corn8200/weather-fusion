@@ -243,6 +243,8 @@ class RSSIngestor:
         self.settings = settings
         self.session = session
         self.cache = cache
+        self.days = settings.days
+        self.tzinfo = settings.tzinfo
 
     def _download_feed(self, site: SiteSettings) -> str:
         params = {
@@ -274,8 +276,8 @@ class RSSIngestor:
         resp.raise_for_status()
         return resp.text.encode("utf-8")
 
-    def fetch(self, site: SiteSettings, days: int, tzinfo) -> List[SourceDailyRecord]:
+    def fetch(self, site: SiteSettings) -> List[SourceDailyRecord]:
         payload = self._download_feed(site)
         if "<rss" in payload.lower():
-            return parse_rss(payload, site, days, tzinfo)
-        return parse_dwml(payload, site, days, tzinfo)
+            return parse_rss(payload, site, self.days, self.tzinfo)
+        return parse_dwml(payload, site, self.days, self.tzinfo)
