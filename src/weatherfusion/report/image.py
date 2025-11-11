@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 
+import pypdfium2 as pdfium
 from weasyprint import CSS, HTML  # type: ignore[import]
 
 DEFAULT_WIDTH = 960
@@ -24,4 +26,20 @@ def render_png(html: str, output_path: Path, width_px: int = DEFAULT_WIDTH) -> N
         }}
         """
     )
-    HTML(string=html).write_png(str(output_path), stylesheets=[css])
+    pdf_bytes = HTML(string=html).write_pdf(stylesheets=[css])
+    pdf = pdfium.PdfDocument(BytesIO(pdf_bytes))
+    try:
+        page = pdf[0]
+        try:
+            width_pts = page.get_width() or width_px
+            scale = width_px / width_pts if width_pts else 1.0
+            bitmap = page.render(scale=scale)
+            try:
+                image = bitmap.to_pil()
+                image.save(output_path, format="PNG")
+            finally:
+                bitmap.close()
+        finally:
+            page.close()
+    finally:
+        pdf.close()

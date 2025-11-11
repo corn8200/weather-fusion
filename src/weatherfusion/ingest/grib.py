@@ -20,6 +20,7 @@ LOGGER = logging.getLogger(__name__)
 BASE_URL = "https://noaa-nbm-grib2-pds.s3.amazonaws.com"
 DOMAIN = "co"
 FIELD_WINDOW_HOURS = 12
+TMP_SAMPLE_STEP = 3
 MM_TO_INCH = 0.0393701
 
 
@@ -193,6 +194,23 @@ class NBMIngestor:
             )
             return None
 
+    def _derive_daily_temp(self, site: SiteSettings, day_idx: int, mode: str) -> float | None:
+        """Approximate daily highs/lows using 3-hour TMP fields when max/min slices are missing."""
+        start_hour = day_idx * 24
+        end_hour = (day_idx + 1) * 24
+        temps: List[float] = []
+        hours: List[int] = []
+        if start_hour == 0:
+            hours.append(0)
+        hours.extend(range(max(3, start_hour + 3), end_hour + 1, TMP_SAMPLE_STEP))
+        for fhour in hours:
+            value = self._sample_optional(site, fhour, "TMP", converter=kelvin_to_f)
+            if value is not None:
+                temps.append(value)
+        if not temps:
+            return None
+        return max(temps) if mode == "high" else min(temps)
+
     @staticmethod
     def _append_note(record: SourceDailyRecord, fragment: str) -> None:
         fragment = fragment.strip()
@@ -238,6 +256,11 @@ class NBMIngestor:
                     LOGGER.debug("NBM fallback MAXT failed for day %s: %s", day_idx, exc2)
             if high_value is not None:
                 rec.high_f = high_value
+            else:
+                derived_high = self._derive_daily_temp(site, day_idx, "high")
+                if derived_high is not None:
+                    rec.high_f = derived_high
+                    LOGGER.info("NBM derived TMP high used for day %s", day_idx)
 
             # Low temperature with fallbacks
             try:
@@ -251,6 +274,10 @@ class NBMIngestor:
                     LOGGER.info("NBM fallback MINT used for day %s", day_idx)
                 except Exception as exc2:
                     LOGGER.debug("NBM fallback MINT failed for day %s: %s", day_idx, exc2)
+                    derived_low = self._derive_daily_temp(site, day_idx, "low")
+                    if derived_low is not None:
+                        rec.low_f = derived_low
+                        LOGGER.info("NBM derived TMP low used for day %s", day_idx)
             pop_hours = {max(day_idx * 24 + FIELD_WINDOW_HOURS, FIELD_WINDOW_HOURS), (day_idx + 1) * 24}
             pop_values: List[float] = []
             qpf_total_inches = 0.0
