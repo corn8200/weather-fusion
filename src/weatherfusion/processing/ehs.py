@@ -81,9 +81,9 @@ def classify_heat(high_f: Optional[float]) -> Tuple[Optional[str], Dict[str, str
 
 FREEZE_GUIDANCE = {
     "None": "",
-    "Frost": "Cover exposed sensors; monitor slick surfaces; plan extra footing checks.",
-    "Freeze": "Limit time on elevated surfaces; stage warm shelters; confirm cold-weather PPE/buddy checks.",
-    "Hard Freeze": "Pause non-essential outdoor handling; enforce short outdoor rotations; keep warming shelter within reach.",
+    "Frost": "Cover exposed sensors; monitor for slick spots; plan extra footing checks.",
+    "Freeze": "Limit time on elevated surfaces; add cold-weather PPE; schedule buddy checks.",
+    "Hard Freeze": "Pause non-essential outdoor handling; rotate shorter outdoor shifts; ensure warm-up breaks indoors.",
 }
 
 

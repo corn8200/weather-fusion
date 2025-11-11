@@ -65,8 +65,8 @@
       margin-top: 0.2rem;
     }
     .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      display: flex; /* more broadly supported than CSS grid in some renderers */
+      flex-direction: column; /* stack sections for clearer screenshots */
       gap: 1.5rem;
     }
     .card {
@@ -231,6 +231,12 @@
       margin-top: 1rem;
       font-size: 0.82rem;
       color: var(--muted);
+    }
+    tbody tr:nth-child(odd) td {
+      background: rgba(2, 6, 23, 0.03);
+    }
+    tbody tr:hover td {
+      background: rgba(30, 58, 138, 0.07);
     }
     .legend ul {
       padding-left: 1.2rem;
@@ -406,15 +412,6 @@
             </ul>
           </div>
         {% endif %}
-        {% if title == work_label %}
-        <div class="legend">
-          <strong>Freeze reminders</strong>
-            <ul>
-              <li>Frost · cover exposed sensors; scan for slick patches.</li>
-              <li>Freeze · limit elevated work; stage warming shelter + buddy checks.</li>
-              <li>Hard Freeze · rotate short outdoor shifts; pause non-essential handling.</li>
-            </ul>
-          </div>
           {% endif %}
         </section>
       {% endfor %}
