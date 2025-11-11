@@ -84,6 +84,11 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
                 LOGGER.exception("%s ingest failed for %s", ingestor.source_name, site_name)
                 sources_failed[site_name].append(f"{ingestor.source_name}: {exc}")
 
+    # Filter out any records older than the run date in the configured timezone
+    run_date = datetime.now(settings.tzinfo).date()
+    for key in list(records.keys()):
+        records[key] = [rec for rec in records[key] if rec.date >= run_date]
+
     home_rows = build_site_ensembles(settings.home.name, records[settings.home.name], settings.days)
     work_rows = build_site_ensembles(settings.work.name, records[settings.work.name], settings.days)
     site_alerts: Dict[str, List] = {}
