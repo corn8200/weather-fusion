@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import Dict, List
 
 from .config import AppSettings
+from .ingest.alerts import AlertsClient
 from .ingest.cache import CacheManager
 from .ingest.grib import NBMIngestor
 from .ingest.gridpoint import GridpointIngestor
+from .ingest.ndfd import NdfdIngestor
 from .ingest.rss import RSSIngestor
 from .models import RunSummary
 from .processing.ensemble import build_site_ensembles
@@ -22,16 +24,22 @@ from .util.logging import setup_logging
 LOGGER = logging.getLogger(__name__)
 
 
-def _ingestor_order(settings: AppSettings, nbm: NBMIngestor, grid: GridpointIngestor, rss: RSSIngestor) -> List:
+def _ingestor_order(
+    settings: AppSettings,
+    nbm: NBMIngestor,
+    grid: GridpointIngestor,
+    ndfd: NdfdIngestor,
+    rss: RSSIngestor,
+) -> List:
+    base_public = [nbm, ndfd, grid]
     order: List = []
     if settings.primary_ingest == "PUBLIC_FILES":
-        order.extend([nbm, grid])
+        order.extend(base_public)
         if settings.rss_fallback:
             order.append(rss)
     else:
-        order.extend([rss, grid])
-        if settings.rss_fallback:
-            order.append(nbm)
+        order.append(rss)
+        order.extend(base_public)
     dedup: List = []
     seen = set()
     for ingestor in order:
@@ -49,7 +57,9 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
 
     nbm = NBMIngestor(session, cache, settings.days, settings.tzinfo)
     grid = GridpointIngestor(session, cache, settings.days, settings.tzinfo)
+    ndfd = NdfdIngestor(settings, session, cache)
     rss = RSSIngestor(settings, session, cache)
+    alerts_client = AlertsClient(session)
 
     site_map = {
         settings.home.name: settings.home,
@@ -60,7 +70,7 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
     sources_ok: Dict[str, List[str]] = {settings.home.name: [], settings.work.name: []}
     sources_failed: Dict[str, List[str]] = {settings.home.name: [], settings.work.name: []}
 
-    for ingestor in _ingestor_order(settings, nbm, grid, rss):
+    for ingestor in _ingestor_order(settings, nbm, grid, ndfd, rss):
         for site_name, site in site_map.items():
             try:
                 site_data = ingestor.fetch(site)
@@ -76,6 +86,13 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
 
     home_rows = build_site_ensembles(settings.home.name, records[settings.home.name], settings.days)
     work_rows = build_site_ensembles(settings.work.name, records[settings.work.name], settings.days)
+    site_alerts: Dict[str, List] = {}
+    for site_name, site in site_map.items():
+        try:
+            site_alerts[site_name] = alerts_client.fetch(site)
+        except Exception as exc:  # pragma: no cover - advisory fetch best effort
+            LOGGER.warning("Alert fetch failed for %s: %s", site_name, exc)
+            site_alerts[site_name] = []
 
     generated_at = datetime.now(settings.tzinfo)
     stamp = generated_at.strftime("%Y%m%d")
@@ -92,7 +109,7 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
     metadata["sources_ok_display"] = " | ".join(f"{k}: {v}" for k, v in metadata["sources_ok"].items())
     metadata["sources_failed_display"] = " | ".join(f"{k}: {v}" for k, v in metadata["sources_failed"].items())
 
-    html = render_report(generated_at, home_rows, work_rows, metadata)
+    html = render_report(generated_at, home_rows, work_rows, metadata, site_alerts)
     html_path.write_text(html, encoding="utf-8")
     png_report = None
     try:
@@ -119,6 +136,7 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
         sources_failed=sources_failed,
         html_report=str(html_path),
         csv_paths={"home": str(home_csv), "work": str(work_csv)},
-        png_report=png_report,
         email_sent=email_sent,
+        png_report=png_report,
+        alerts=site_alerts,
     )

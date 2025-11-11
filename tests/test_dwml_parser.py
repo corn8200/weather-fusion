@@ -1,7 +1,7 @@
 from zoneinfo import ZoneInfo
 
 from weatherfusion.config import SiteSettings
-from weatherfusion.ingest.rss import parse_dwml
+from weatherfusion.ingest.dwml import parse_dwml
 
 
 def test_parse_dwml_extracts_daily_fields():

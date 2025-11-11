@@ -188,10 +188,20 @@ class GridpointIngestor:
             agg="sum",
             transform=mm_to_inches,
         )
+        snow = self._bucket_numeric(
+            props.get("snowfallAmount", {}).get("values", []),
+            agg="sum",
+            transform=mm_to_inches,
+        )
+        ice = self._bucket_numeric(
+            props.get("iceAccumulation", {}).get("values", []),
+            agg="sum",
+            transform=mm_to_inches,
+        )
         weather = self._bucket_weather(props.get("weather", {}).get("values", []))
 
         bucket: Dict[date, SourceDailyRecord] = {}
-        for day in sorted(set(highs) | set(lows) | set(pops) | set(qpf) | set(weather)):
+        for day in sorted(set(highs) | set(lows) | set(pops) | set(qpf) | set(snow) | set(ice) | set(weather)):
             record = _ensure_record(bucket, site, day)
             if day in highs:
                 record.high_f = highs[day]
@@ -201,8 +211,15 @@ class GridpointIngestor:
                 record.pop_pct = max(record.pop_pct or 0, pops[day])
             if day in qpf and qpf[day] > 0:
                 inches = qpf[day]
+                record.qpf_inches = round((record.qpf_inches or 0) + inches, 2)
                 note = f"NWS QPF {inches:.2f}\""
                 record.precip_notes = f"{record.precip_notes} | {note}".strip(" |")
+            if day in snow and snow[day] > 0:
+                inches = snow[day]
+                record.snow_inches = round((record.snow_inches or 0) + inches, 2)
+            if day in ice and ice[day] > 0:
+                inches = ice[day]
+                record.ice_inches = round((record.ice_inches or 0) + inches, 2)
             if day in weather:
                 primary, notes = weather[day]
                 if primary:

@@ -5,9 +5,10 @@ This project builds a twice-daily, EHS-focused 10-day forecast email that blends
 ## Highlights
 
 - Primary ingest from National Blend of Models CONUS GRIB2 slices with byte-range downloads via `.idx` offsets.
-- Automatic fallback to MapClick RSS/DWML feeds and ensemble averaging across sources (always-on PoP + precip-type tracking).
+- Automatic fallback to NWS MapClick RSS/DWML plus gridpoint JSON + NDFD time-series feeds, then ensemble averaging across sources (always-on PoP + precip-type tracking).
 - Categorizes daily heat/cold risk with tailored worker guidance and freeze badges specific to the Work site.
 - Renders a polished HTML email with sparklines, zebra tables, chips, dark-mode friendly palette, and accessibility helpers; also writes CSV artifacts per site.
+- Exports a slide-ready PNG snapshot, attaches quantitative precipitation/snow/ice from multiple NOAA feeds, and surfaces active NWS alerts per site.
 - Supports caching, retries with exponential backoff, Gmail SMTP delivery, and GitHub Actions automation for 06:00/18:00 ET runs.
 
 ## Local usage

@@ -44,6 +44,10 @@ def mm_to_inches(value: float) -> float:
     return value * MM_TO_INCH
 
 
+def meters_to_inches(value: float) -> float:
+    return value * 39.3701
+
+
 def parse_index(text: str) -> List[GribIndexEntry]:
     entries: List[GribIndexEntry] = []
     for line in filter(None, text.splitlines()):
@@ -234,6 +238,7 @@ class NBMIngestor:
             pop_hours = {max(day_idx * 24 + FIELD_WINDOW_HOURS, FIELD_WINDOW_HOURS), (day_idx + 1) * 24}
             pop_values: List[float] = []
             qpf_total_inches = 0.0
+            snow_total_inches = 0.0
             for fhour in pop_hours:
                 pop_val = self._sample_optional(site, fhour, "POP12")
                 if pop_val is not None:
@@ -241,10 +246,20 @@ class NBMIngestor:
                 qpf_mm = self._sample_optional(site, fhour, "APCP")
                 if qpf_mm is not None:
                     qpf_total_inches += mm_to_inches(qpf_mm)
+                snow_m = self._sample_optional(site, fhour, "ASNOW")
+                if snow_m is not None:
+                    snow_total_inches += meters_to_inches(snow_m)
             if pop_values:
                 best_pop = max(pop_values)
                 rec.pop_pct = max(rec.pop_pct or 0, best_pop)
+            note_frags: List[str] = []
             if qpf_total_inches > 0:
-                self._append_note(rec, f"NBM QPF {qpf_total_inches:.2f}\"")
+                rec.qpf_inches = round(qpf_total_inches, 2)
+                note_frags.append(f"NBM QPF {rec.qpf_inches:.2f}\"")
+            if snow_total_inches > 0:
+                rec.snow_inches = round(snow_total_inches, 2)
+                note_frags.append(f"NBM Snow {rec.snow_inches:.2f}\"")
+            if note_frags:
+                self._append_note(rec, "; ".join(note_frags))
         ordered = sorted(records.keys())[: self.days]
         return [records[d] for d in ordered]

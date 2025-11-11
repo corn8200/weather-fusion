@@ -71,6 +71,12 @@ def build_site_ensembles(site_name: str, records: List[SourceDailyRecord], days:
         precip_notes = " | ".join(
             dict.fromkeys(filter(None, [rec.precip_notes for rec in bucket]))
         )
+        qpf_values = [rec.qpf_inches for rec in bucket if rec.qpf_inches is not None]
+        snow_values = [rec.snow_inches for rec in bucket if rec.snow_inches is not None]
+        ice_values = [rec.ice_inches for rec in bucket if rec.ice_inches is not None]
+        qpf_inches = round(mean(qpf_values), 2) if qpf_values else None
+        snow_inches = round(mean(snow_values), 2) if snow_values else None
+        ice_inches = round(mean(ice_values), 2) if ice_values else None
         breezy = any(
             (
                 (rec.wind_phrase and any(token in rec.wind_phrase.lower() for token in ("breezy", "wind", "gust")))
@@ -81,6 +87,11 @@ def build_site_ensembles(site_name: str, records: List[SourceDailyRecord], days:
         heat_category, heat_guidance = classify_heat(high)
         freeze_badge, freeze_guidance = classify_freeze(low, breezy)
         sources = sorted({rec.source for rec in bucket})
+        precip_votes = Counter(filter(None, [rec.precip_type for rec in bucket]))
+        precip_consensus = None
+        if precip_votes:
+            leader, count = precip_votes.most_common(1)[0]
+            precip_consensus = f"{leader} ({count}/{sum(precip_votes.values())} src)"
         label = bucket[0].label or day.strftime("%a %b %d")
         output.append(
             DailyEnsemble(
@@ -96,6 +107,10 @@ def build_site_ensembles(site_name: str, records: List[SourceDailyRecord], days:
                 heat_guidance=heat_guidance,
                 freeze_risk_badge=freeze_badge,
                 freeze_guidance=freeze_guidance,
+                qpf_inches=qpf_inches,
+                snow_inches=snow_inches,
+                ice_inches=ice_inches,
+                precip_consensus=precip_consensus,
                 sources=sources,
                 sources_count=len(sources),
                 low_confidence=len(sources) < 2,

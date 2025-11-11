@@ -18,6 +18,9 @@ class SourceDailyRecord:
     precip_notes: str = ""
     wind_phrase: Optional[str] = None
     notes: str = ""
+    qpf_inches: Optional[float] = None
+    snow_inches: Optional[float] = None
+    ice_inches: Optional[float] = None
 
 
 @dataclass(slots=True)
@@ -34,10 +37,22 @@ class DailyEnsemble:
     heat_guidance: dict[str, str]
     freeze_risk_badge: Optional[str] = None
     freeze_guidance: Optional[str] = None
+    qpf_inches: Optional[float] = None
+    snow_inches: Optional[float] = None
+    ice_inches: Optional[float] = None
+    precip_consensus: Optional[str] = None
     sources: List[str] = field(default_factory=list)
     sources_count: int = 0
     low_confidence: bool = False
     lightning_note: str | None = None
+
+
+@dataclass(slots=True)
+class AlertSummary:
+    headline: str
+    severity: str
+    expires: Optional[datetime]
+    instruction: Optional[str]
 
 
 @dataclass(slots=True)
@@ -49,3 +64,4 @@ class RunSummary:
     csv_paths: dict[str, str]
     email_sent: bool
     png_report: Optional[str] = None
+    alerts: dict[str, List[AlertSummary]] = field(default_factory=dict)

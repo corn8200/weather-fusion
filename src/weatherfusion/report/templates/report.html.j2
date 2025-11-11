@@ -236,6 +236,12 @@
       padding-left: 1.2rem;
       margin: 0.4rem 0 0 0;
     }
+    .alert-block ul {
+      list-style: disc;
+    }
+    .alert-block li {
+      margin-bottom: 0.25rem;
+    }
   </style>
 </head>
 <body>
@@ -257,7 +263,7 @@
         Sources Failed: {{ meta.get('sources_failed_display') }}
       </p>
       <div class="meta-grid" aria-label="source summary">
-        {% for label in ['Home', 'Work'] %}
+        {% for label in [home_label, work_label] %}
           <div class="meta-card">
             <div class="meta-label">{{ label }} sources</div>
             <div class="meta-value">{{ meta['sources_ok'].get(label, '—') }}</div>
@@ -268,8 +274,9 @@
     </header>
 
     <div class="grid">
-      {% for title, site in [('Home', home), ('Work', work)] %}
+      {% for title, site in [(home_label, home), (work_label, work)] %}
         {% set rows = site.rows %}
+        {% set site_alerts = alerts.get(title, []) %}
         <section class="card" aria-label="{{ title }} outlook">
           <div class="card-header">
             <div>
@@ -293,7 +300,7 @@
                 <th scope="col">Date</th>
                 <th scope="col">Temps</th>
                 <th scope="col">Wx &amp; Notes</th>
-                {% if title == 'Work' %}
+                {% if title == work_label %}
                   <th scope="col">Heat</th>
                   <th scope="col">Freeze</th>
                 {% endif %}
@@ -320,9 +327,24 @@
                   {% if row.precip_type %}
                     <span class="chip info">{{ row.precip_type }}</span>
                   {% endif %}
-                  <div class="notes">{{ row.precip_notes or '—' }}</div>
+                  <div class="notes">
+                    {{ row.precip_notes or '—' }}
+                    <div class="micro">
+                      {% if row.precip_consensus %}{{ row.precip_consensus }}{% endif %}
+                      {% if row.precip_consensus and (row.qpf_inches or row.snow_inches or row.ice_inches) %} · {% endif %}
+                      {% if row.qpf_inches %}Liquid {{ format_amount(row.qpf_inches) }}{% endif %}
+                      {% if row.snow_inches %}
+                        {% if row.qpf_inches %} / {% endif %}
+                        Snow {{ format_amount(row.snow_inches) }}
+                      {% endif %}
+                      {% if row.ice_inches %}
+                        {% if row.qpf_inches or row.snow_inches %} / {% endif %}
+                        Ice {{ format_amount(row.ice_inches) }}
+                      {% endif %}
+                    </div>
+                  </div>
                 </td>
-                {% if title == 'Work' %}
+                {% if title == work_label %}
                 <td>
                   <div class="ehs-block">
                     <span class="ehs-label">Heat</span>
@@ -365,12 +387,28 @@
             <div class="no-data">No data available — see <a href="https://www.weather.gov" target="_blank" rel="noopener">NWS</a></div>
           {% endif %}
 
-          {% if title == 'Work' and rows and rows[0].lightning_note %}
-            <p class="legend">⚡ {{ rows[0].lightning_note }}</p>
-          {% endif %}
-          {% if title == 'Work' %}
-          <div class="legend">
-            <strong>Freeze reminders</strong>
+        {% if title == work_label and rows and rows[0].lightning_note %}
+          <p class="legend">⚡ {{ rows[0].lightning_note }}</p>
+        {% endif %}
+        {% if site_alerts %}
+          <div class="legend alert-block">
+            <strong>Active alerts</strong>
+            <ul>
+              {% for alert in site_alerts %}
+                <li>
+                  {{ alert.headline }} — {{ alert.severity }}
+                  {% if alert.expires %}(until {{ alert.expires.strftime('%b %d %H:%M %Z') }}){% endif %}
+                  {% if alert.instruction %}
+                    <div class="micro">{{ alert.instruction }}</div>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+        {% if title == work_label %}
+        <div class="legend">
+          <strong>Freeze reminders</strong>
             <ul>
               <li>Frost · cover exposed sensors; scan for slick patches.</li>
               <li>Freeze · limit elevated work; stage warming shelter + buddy checks.</li>

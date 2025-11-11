@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Sequence
+from typing import Dict, List, Sequence
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -38,22 +38,20 @@ def _sparkline(values: Sequence[float | None], width: int = 240, height: int = 5
     return Sparkline(" ".join(cmds), round(min_v, 1), round(max_v, 1))
 
 
-def _temp_style(value: float | None, kind: str) -> str:
-    if value is None:
-        return ""
-    clamp_min, clamp_max = (-10, 110)
-    pct = (value - clamp_min) / (clamp_max - clamp_min)
-    pct = max(0.0, min(1.0, pct))
-    color = "rgba(255, 105, 97, 0.35)" if kind == "high" else "rgba(65, 147, 255, 0.35)"
-    return f"background: linear-gradient(90deg, {color} {pct * 100:.1f}%, transparent {pct * 100:.1f}%);"
-
-
 def _format_temp(value: float | None) -> str:
     return f"{value:.0f}°" if value is not None else "—"
 
 
 def _format_pop(value: float | None) -> str:
     return f"{value:.0f}%" if value is not None else "—"
+
+
+def _format_amount(value: float | None) -> str:
+    if value is None:
+        return "—"
+    if value < 0.01:
+        return "<0.01\""
+    return f"{value:.2f}\""
 
 
 def _env() -> Environment:
@@ -66,6 +64,7 @@ def render_report(
     home_rows: List[DailyEnsemble],
     work_rows: List[DailyEnsemble],
     metadata: dict,
+    alerts: Dict[str, List],
 ) -> str:
     env = _env()
     template = env.get_template("report.html.j2")
@@ -81,9 +80,12 @@ def render_report(
             "spark_high": _sparkline([row.high_f for row in work_rows]),
             "spark_low": _sparkline([row.low_f for row in work_rows]),
         },
+        "alerts": alerts,
+        "home_label": home_rows[0].site_name if home_rows else "Home",
+        "work_label": work_rows[0].site_name if work_rows else "Work",
         "meta": metadata,
         "format_temp": _format_temp,
         "format_pop": _format_pop,
-        "temp_style": _temp_style,
+        "format_amount": _format_amount,
     }
     return template.render(**context)
