@@ -7,7 +7,7 @@ from ..config import AppSettings, SiteSettings
 from .cache import CacheManager
 from .dwml import parse_dwml
 
-NDFD_URL = "https://graphical.weather.gov/xml/SOAP_server/ndfdBrowserClientByLatLon.php"
+NDFD_URL = "https://graphical.weather.gov/xml/SOAP_server/ndfdXMLclient.php"
 
 
 class NdfdIngestor:
@@ -34,6 +34,8 @@ class NdfdIngestor:
             "begin": now.strftime("%Y-%m-%dT%H:%M:%S"),
             "end": end.strftime("%Y-%m-%dT%H:%M:%S"),
             "Unit": "e",
+            "maxt": "maxt",
+            "mint": "mint",
             "pop12": "pop12",
             "qpf": "qpf",
             "snow": "snow",
