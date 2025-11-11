@@ -91,7 +91,8 @@ def build_site_ensembles(site_name: str, records: List[SourceDailyRecord], days:
         precip_consensus = None
         if precip_votes:
             leader, count = precip_votes.most_common(1)[0]
-            precip_consensus = f"{leader} ({count}/{sum(precip_votes.values())} src)"
+            typed_total = sum(precip_votes.values())
+            precip_consensus = f"{leader} ({count}/{typed_total} sources typed)"
         label = bucket[0].label or day.strftime("%a %b %d")
         output.append(
             DailyEnsemble(
