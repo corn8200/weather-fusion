@@ -63,7 +63,17 @@ def build_site_ensembles(site_name: str, records: List[SourceDailyRecord], days:
         low = _mean(lows)
         if high is not None and low is not None and low > high:
             low = None
-        if high is None and low is None:
+        # Only skip if literally every useful value is missing
+        if (
+            high is None
+            and low is None
+            and all(rec.pop_pct is None for rec in bucket)
+            and all(rec.precip_type is None for rec in bucket)
+            and all(not rec.precip_notes for rec in bucket)
+            and all(rec.qpf_inches in (None, 0) for rec in bucket)
+            and all(rec.snow_inches in (None, 0) for rec in bucket)
+            and all(rec.ice_inches in (None, 0) for rec in bucket)
+        ):
             continue
         pop_values = [rec.pop_pct for rec in bucket if rec.pop_pct is not None]
         pop_pct = round(max(pop_values), 1) if pop_values else None

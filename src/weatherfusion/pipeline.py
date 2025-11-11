@@ -86,8 +86,22 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
 
     # Filter out any records older than the run date in the configured timezone
     run_date = datetime.now(settings.tzinfo).date()
-    for key in list(records.keys()):
-        records[key] = [rec for rec in records[key] if rec.date >= run_date]
+    filtered_records: Dict[str, List] = {}
+    fresh_sources: Dict[str, set[str]] = {settings.home.name: set(), settings.work.name: set()}
+    for key in records:
+        fresh = [rec for rec in records[key] if rec.date >= run_date]
+        filtered_records[key] = fresh
+        for rec in fresh:
+            fresh_sources[key].add(rec.source)
+
+    records = filtered_records
+    for site_name, seen_sources in fresh_sources.items():
+        for source in list(sources_ok[site_name]):
+            if source not in seen_sources:
+                # Remove stale "OK" entries and mark as failed because no usable rows remained
+                sources_ok[site_name].remove(source)
+                if f"{source}: stale data" not in sources_failed[site_name]:
+                    sources_failed[site_name].append(f"{source}: stale data")
 
     home_rows = build_site_ensembles(settings.home.name, records[settings.home.name], settings.days)
     work_rows = build_site_ensembles(settings.work.name, records[settings.work.name], settings.days)
