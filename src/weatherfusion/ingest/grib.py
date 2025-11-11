@@ -183,7 +183,14 @@ class NBMIngestor:
         try:
             return self._sample_field([site], fhour, short_name, converter=converter)[site.name]
         except Exception as exc:  # pragma: no cover - best effort ancillary fields
-            LOGGER.debug("NBM sample failed for %s %s fhour=%s: %s", short_name, site.name, fhour, exc)
+            LOGGER.debug(
+                "NBM sample failed for %s %s fhour=%s: %s: %s",
+                short_name,
+                site.name,
+                fhour,
+                type(exc).__name__,
+                exc,
+            )
             return None
 
     @staticmethod
@@ -206,11 +213,8 @@ class NBMIngestor:
             high_hour = (day_idx + 1) * 24
             low_hour = day_idx * 24 + FIELD_WINDOW_HOURS
             target_day = base_day + timedelta(days=day_idx)
-            try:
-                high_value = self._sample_field([site], high_hour, "TMAX", converter=kelvin_to_f)[site.name]
-            except Exception as exc:
-                LOGGER.warning("Unable to sample TMAX for day %s: %s", day_idx, exc)
-                continue
+
+            # Ensure the record exists so we can still use PoP/QPF/Snow even if highs/lows fail
             rec = records.setdefault(
                 target_day,
                 SourceDailyRecord(
@@ -220,21 +224,33 @@ class NBMIngestor:
                     source=self.source_name,
                 ),
             )
-            rec.high_f = high_value
+
+            # High temperature with fallbacks
+            high_value = None
+            try:
+                high_value = self._sample_field([site], high_hour, "TMAX", converter=kelvin_to_f)[site.name]
+            except Exception as exc:
+                LOGGER.warning("Unable to sample TMAX for day %s: %s", day_idx, exc)
+                try:
+                    high_value = self._sample_field([site], high_hour, "MAXT", converter=kelvin_to_f)[site.name]
+                    LOGGER.info("NBM fallback MAXT used for day %s", day_idx)
+                except Exception as exc2:
+                    LOGGER.debug("NBM fallback MAXT failed for day %s: %s", day_idx, exc2)
+            if high_value is not None:
+                rec.high_f = high_value
+
+            # Low temperature with fallbacks
             try:
                 low_value = self._sample_field([site], low_hour, "TMIN", converter=kelvin_to_f)[site.name]
-                record_low = records.setdefault(
-                    target_day,
-                    SourceDailyRecord(
-                        site_name=site.name,
-                        date=target_day,
-                        label=format_day_label(target_day),
-                        source=self.source_name,
-                    ),
-                )
-                record_low.low_f = low_value
+                rec.low_f = low_value
             except Exception as exc:
                 LOGGER.warning("Unable to sample TMIN for day %s: %s", day_idx, exc)
+                try:
+                    low_value = self._sample_field([site], low_hour, "MINT", converter=kelvin_to_f)[site.name]
+                    rec.low_f = low_value
+                    LOGGER.info("NBM fallback MINT used for day %s", day_idx)
+                except Exception as exc2:
+                    LOGGER.debug("NBM fallback MINT failed for day %s: %s", day_idx, exc2)
             pop_hours = {max(day_idx * 24 + FIELD_WINDOW_HOURS, FIELD_WINDOW_HOURS), (day_idx + 1) * 24}
             pop_values: List[float] = []
             qpf_total_inches = 0.0
