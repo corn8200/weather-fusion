@@ -14,6 +14,7 @@ from .models import RunSummary
 from .processing.ensemble import build_site_ensembles
 from .report.csv import write_home_csv, write_work_csv
 from .report.html import render_report
+from .report.image import render_png
 from .util.emailer import EmailClient
 from .util.http import create_session
 from .util.logging import setup_logging
@@ -79,6 +80,7 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
     generated_at = datetime.now(settings.tzinfo)
     stamp = generated_at.strftime("%Y%m%d")
     html_path = settings.out_dir / f"report_{stamp}.html"
+    png_path = settings.out_dir / f"report_{stamp}.png"
     home_csv = settings.out_dir / f"home_best_{stamp}.csv"
     work_csv = settings.out_dir / f"work_best_{stamp}.csv"
     settings.out_dir.mkdir(parents=True, exist_ok=True)
@@ -92,6 +94,12 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
 
     html = render_report(generated_at, home_rows, work_rows, metadata)
     html_path.write_text(html, encoding="utf-8")
+    png_report = None
+    try:
+        render_png(html, png_path)
+        png_report = str(png_path)
+    except Exception as exc:  # pragma: no cover - rendering optional
+        LOGGER.warning("Unable to render PNG preview: %s", exc)
     write_home_csv(home_rows, home_csv)
     write_work_csv(work_rows, work_csv)
 
@@ -111,5 +119,6 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
         sources_failed=sources_failed,
         html_report=str(html_path),
         csv_paths={"home": str(home_csv), "work": str(work_csv)},
+        png_report=png_report,
         email_sent=email_sent,
     )

@@ -48,3 +48,4 @@ class RunSummary:
     html_report: str
     csv_paths: dict[str, str]
     email_sent: bool
+    png_report: Optional[str] = None

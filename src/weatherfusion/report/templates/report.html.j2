@@ -14,10 +14,17 @@
     }
     body {
       margin: 0;
-      padding: 2rem;
-      background: radial-gradient(circle at top, #0f172a, #020617);
+      padding: 0;
+      background: radial-gradient(circle at top, #0b1126, #020617);
       color: #f8fafc;
       line-height: 1.4;
+      font-kerning: normal;
+    }
+    .page {
+      width: 960px;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem;
     }
     a {
       color: #60a5fa;
@@ -241,132 +248,139 @@
     {{ source_names.get(code, code.replace('_', ' ').title()) }}
   {%- endmacro %}
 
-  <header class="page-header">
-    <h1>EHS 10-Day Forecast — Home &amp; Work</h1>
-    <p class="meta-line">
-      Generated {{ generated_at.astimezone().strftime('%Y-%m-%d %H:%M %Z') }} ·
-      Sources OK: {{ meta.get('sources_ok_display') }} ·
-      Sources Failed: {{ meta.get('sources_failed_display') }}
-    </p>
-    <div class="meta-grid" aria-label="source summary">
-      {% for label in ['Home', 'Work'] %}
-        <div class="meta-card">
-          <div class="meta-label">{{ label }} sources</div>
-          <div class="meta-value">{{ meta['sources_ok'].get(label, '—') }}</div>
-          <div class="meta-sub">Fallback: {{ meta['sources_failed'].get(label, '—') }}</div>
-        </div>
+  <main class="page">
+    <header class="page-header">
+      <h1>EHS 10-Day Forecast — Home &amp; Work</h1>
+      <p class="meta-line">
+        Generated {{ generated_at.astimezone().strftime('%Y-%m-%d %H:%M %Z') }} ·
+        Sources OK: {{ meta.get('sources_ok_display') }} ·
+        Sources Failed: {{ meta.get('sources_failed_display') }}
+      </p>
+      <div class="meta-grid" aria-label="source summary">
+        {% for label in ['Home', 'Work'] %}
+          <div class="meta-card">
+            <div class="meta-label">{{ label }} sources</div>
+            <div class="meta-value">{{ meta['sources_ok'].get(label, '—') }}</div>
+            <div class="meta-sub">Fallback: {{ meta['sources_failed'].get(label, '—') }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </header>
+
+    <div class="grid">
+      {% for title, site in [('Home', home), ('Work', work)] %}
+        {% set rows = site.rows %}
+        <section class="card" aria-label="{{ title }} outlook">
+          <div class="card-header">
+            <div>
+              <h2>{{ title }}</h2>
+              <p class="subtitle">10-day outlook</p>
+            </div>
+            {% if site.spark_high.d %}
+              <div class="sparkline" aria-hidden="true">
+                <svg width="240" height="70" viewBox="0 0 240 56" role="img" aria-label="{{ title }} temperature trend">
+                  <path d="{{ site.spark_low.d }}" fill="none" stroke="rgba(59,130,246,0.7)" stroke-width="2.5" />
+                  <path d="{{ site.spark_high.d }}" fill="none" stroke="rgba(239,68,68,0.85)" stroke-width="2.5" />
+                </svg>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if rows %}
+          <table role="table" aria-label="{{ title }} forecast table">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Temps</th>
+                <th scope="col">Wx &amp; Notes</th>
+                {% if title == 'Work' %}
+                  <th scope="col">Heat</th>
+                  <th scope="col">Freeze</th>
+                {% endif %}
+                <th scope="col">Sources</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr>
+                <td class="date-cell">
+                  {{ row.label }}
+                  {% if row.low_confidence %}
+                    <div class="confidence-pill">Low confidence</div>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="temp-stack">
+                    <div class="temp high">{{ format_temp(row.high_f) }}</div>
+                    <div class="temp low">{{ format_temp(row.low_f) }}</div>
+                    <div class="pop-pill">PoP {{ format_pop(row.pop_pct) }}</div>
+                  </div>
+                </td>
+                <td class="wx-cell">
+                  {% if row.precip_type %}
+                    <span class="chip info">{{ row.precip_type }}</span>
+                  {% endif %}
+                  <div class="notes">{{ row.precip_notes or '—' }}</div>
+                </td>
+                {% if title == 'Work' %}
+                <td>
+                  <div class="ehs-block">
+                    <span class="ehs-label">Heat</span>
+                    {% if row.heat_category %}
+                      <span class="chip danger">{{ row.heat_category }}</span>
+                      <div class="micro">Work/rest {{ row.heat_guidance.get('work_rest_min') }} · Hydration {{ row.heat_guidance.get('hydration_cups_per_min') }}</div>
+                    {% else %}
+                      <div class="micro">Baseline precautions</div>
+                    {% endif %}
+                  </div>
+                </td>
+                <td>
+                  <div class="ehs-block">
+                    <span class="ehs-label">Freeze</span>
+                    {% if row.freeze_risk_badge %}
+                      <span class="chip info">{{ row.freeze_risk_badge }}</span>
+                      <div class="micro">{{ row.freeze_guidance }}</div>
+                    {% else %}
+                      <div class="micro">No freeze risk</div>
+                    {% endif %}
+                  </div>
+                </td>
+                {% endif %}
+                <td>
+                  <div class="source-chips">
+                    {% for src in row.sources %}
+                      <span class="source-chip">{{ source_label(src) }}</span>
+                    {% endfor %}
+                  </div>
+                  <div class="source-foot">
+                    {{ row.sources_count }} source{{ '' if row.sources_count == 1 else 's' }}
+                    {% if row.low_confidence %}· verify against NWS{% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+            <div class="no-data">No data available — see <a href="https://www.weather.gov" target="_blank" rel="noopener">NWS</a></div>
+          {% endif %}
+
+          {% if title == 'Work' and rows and rows[0].lightning_note %}
+            <p class="legend">⚡ {{ rows[0].lightning_note }}</p>
+          {% endif %}
+          {% if title == 'Work' %}
+          <div class="legend">
+            <strong>Freeze reminders</strong>
+            <ul>
+              <li>Frost · cover exposed sensors; scan for slick patches.</li>
+              <li>Freeze · limit elevated work; stage warming shelter + buddy checks.</li>
+              <li>Hard Freeze · rotate short outdoor shifts; pause non-essential handling.</li>
+            </ul>
+          </div>
+          {% endif %}
+        </section>
       {% endfor %}
     </div>
-  </header>
-
-  <div class="grid">
-    {% for title, site in [('Home', home), ('Work', work)] %}
-      {% set rows = site.rows %}
-      <section class="card" aria-label="{{ title }} outlook">
-        <div class="card-header">
-          <div>
-            <h2>{{ title }}</h2>
-            <p class="subtitle">10-day outlook</p>
-          </div>
-          {% if site.spark_high.d %}
-            <div class="sparkline" aria-hidden="true">
-              <svg width="240" height="70" viewBox="0 0 240 56" role="img" aria-label="{{ title }} temperature trend">
-                <path d="{{ site.spark_low.d }}" fill="none" stroke="rgba(59,130,246,0.7)" stroke-width="2.5" />
-                <path d="{{ site.spark_high.d }}" fill="none" stroke="rgba(239,68,68,0.85)" stroke-width="2.5" />
-              </svg>
-            </div>
-          {% endif %}
-        </div>
-
-        {% if rows %}
-        <table role="table" aria-label="{{ title }} forecast table">
-          <thead>
-            <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Temps</th>
-              <th scope="col">Wx &amp; Notes</th>
-              <th scope="col">EHS Guidance{% if title == 'Work' %}<br><small>(Heat + Freeze)</small>{% endif %}</th>
-              <th scope="col">Sources</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in rows %}
-            <tr>
-              <td class="date-cell">
-                {{ row.label }}
-                {% if row.low_confidence %}
-                  <div class="confidence-pill">Low confidence</div>
-                {% endif %}
-              </td>
-              <td>
-                <div class="temp-stack">
-                  <div class="temp high">{{ format_temp(row.high_f) }}</div>
-                  <div class="temp low">{{ format_temp(row.low_f) }}</div>
-                  <div class="pop-pill">PoP {{ format_pop(row.pop_pct) }}</div>
-                </div>
-              </td>
-              <td class="wx-cell">
-                {% if row.precip_type %}
-                  <span class="chip info">{{ row.precip_type }}</span>
-                {% endif %}
-                <div class="notes">{{ row.precip_notes or '—' }}</div>
-              </td>
-              <td>
-                <div class="ehs-block">
-                  <span class="ehs-label">Heat</span>
-                  {% if row.heat_category %}
-                    <span class="chip danger">{{ row.heat_category }}</span>
-                    <div class="micro">Work/rest {{ row.heat_guidance.get('work_rest_min') }} · Hydration {{ row.heat_guidance.get('hydration_cups_per_min') }}</div>
-                  {% else %}
-                    <div class="micro">Baseline precautions</div>
-                  {% endif %}
-                </div>
-                {% if title == 'Work' %}
-                <div class="ehs-block">
-                  <span class="ehs-label">Freeze</span>
-                  {% if row.freeze_risk_badge %}
-                    <span class="chip info">{{ row.freeze_risk_badge }}</span>
-                    <div class="micro">{{ row.freeze_guidance }}</div>
-                  {% else %}
-                    <div class="micro">No freeze risk</div>
-                  {% endif %}
-                </div>
-                {% endif %}
-              </td>
-              <td>
-                <div class="source-chips">
-                  {% for src in row.sources %}
-                    <span class="source-chip">{{ source_label(src) }}</span>
-                  {% endfor %}
-                </div>
-                <div class="source-foot">
-                  {{ row.sources_count }} source{{ '' if row.sources_count == 1 else 's' }}
-                  {% if row.low_confidence %}· verify against NWS{% endif %}
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-          <div class="no-data">No data available — see <a href="https://www.weather.gov" target="_blank" rel="noopener">NWS</a></div>
-        {% endif %}
-
-        {% if rows and rows[0].lightning_note %}
-          <p class="legend">⚡ {{ rows[0].lightning_note }}</p>
-        {% endif %}
-        {% if title == 'Work' %}
-        <div class="legend">
-          <strong>Freeze legend</strong>
-          <ul>
-            <li>Frost · cover sensitive instruments; slip-trip watch.</li>
-            <li>Freeze · drain/bleed lines; heat-trace runs; salt shaded paths.</li>
-            <li>Hard Freeze · suspend liquid transfers; lockout icy elevations; warm-up 15-on/45-off.</li>
-          </ul>
-        </div>
-        {% endif %}
-      </section>
-    {% endfor %}
-  </div>
+  </main>
 </body>
 </html>

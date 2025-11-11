@@ -30,6 +30,7 @@ def main(**kwargs):
         json.dumps(
             {
                 "html_report": summary.html_report,
+                "png_report": summary.png_report,
                 "csv_paths": summary.csv_paths,
                 "email_sent": summary.email_sent,
             },
