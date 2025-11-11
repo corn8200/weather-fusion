@@ -234,7 +234,8 @@
 <body>
   {% set source_names = {
     'nbm_grib': 'NBM · CONUS',
-    'nws_rss': 'NWS MapClick'
+    'nws_rss': 'NWS MapClick',
+    'nws_gridpoint': 'NWS Gridpoint'
   } %}
   {% macro source_label(code) -%}
     {{ source_names.get(code, code.replace('_', ' ').title()) }}

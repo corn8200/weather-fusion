@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, NamedTuple, Tuple
+from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Tuple
 
 try:  # pragma: no cover - optional heavy dependency
     import xarray as xr
@@ -20,6 +20,7 @@ LOGGER = logging.getLogger(__name__)
 BASE_URL = "https://noaa-nbm-grib2-pds.s3.amazonaws.com"
 DOMAIN = "co"
 FIELD_WINDOW_HOURS = 12
+MM_TO_INCH = 0.0393701
 
 
 class GribIndexEntry(NamedTuple):
@@ -37,6 +38,10 @@ class CycleInfo:
 
 def kelvin_to_f(value: float) -> float:
     return (value - 273.15) * 9.0 / 5.0 + 32.0
+
+
+def mm_to_inches(value: float) -> float:
+    return value * MM_TO_INCH
 
 
 def parse_index(text: str) -> List[GribIndexEntry]:
@@ -147,14 +152,45 @@ class NBMIngestor:
         point = data.sel(latitude=lat, longitude=lon, method="nearest")
         return float(point.values)
 
-    def _sample_field(self, sites: Iterable[SiteSettings], fhour: int, short_name: str) -> Dict[str, float]:
+    def _sample_field(
+        self,
+        sites: Iterable[SiteSettings],
+        fhour: int,
+        short_name: str,
+        converter: Callable[[float], float] | None = None,
+    ) -> Dict[str, float]:
         cycle = self._select_cycle()
         data = self._load_data(cycle, fhour, short_name)
         samples: Dict[str, float] = {}
         for site in sites:
             value = self._extract_value(data, site.latitude, site.longitude)
-            samples[site.name] = kelvin_to_f(value)
+            if converter:
+                value = converter(value)
+            samples[site.name] = value
         return samples
+
+    def _sample_optional(
+        self,
+        site: SiteSettings,
+        fhour: int,
+        short_name: str,
+        converter: Callable[[float], float] | None = None,
+    ) -> float | None:
+        try:
+            return self._sample_field([site], fhour, short_name, converter=converter)[site.name]
+        except Exception as exc:  # pragma: no cover - best effort ancillary fields
+            LOGGER.debug("NBM sample failed for %s %s fhour=%s: %s", short_name, site.name, fhour, exc)
+            return None
+
+    @staticmethod
+    def _append_note(record: SourceDailyRecord, fragment: str) -> None:
+        fragment = fragment.strip()
+        if not fragment:
+            return
+        if record.precip_notes:
+            record.precip_notes += " | " + fragment
+        else:
+            record.precip_notes = fragment
 
     def fetch(self, site: SiteSettings) -> List[SourceDailyRecord]:
         cycle = self._select_cycle()
@@ -167,7 +203,7 @@ class NBMIngestor:
             low_hour = day_idx * 24 + FIELD_WINDOW_HOURS
             target_day = base_day + timedelta(days=day_idx)
             try:
-                high_value = self._sample_field([site], high_hour, "TMAX")[site.name]
+                high_value = self._sample_field([site], high_hour, "TMAX", converter=kelvin_to_f)[site.name]
             except Exception as exc:
                 LOGGER.warning("Unable to sample TMAX for day %s: %s", day_idx, exc)
                 continue
@@ -182,7 +218,7 @@ class NBMIngestor:
             )
             rec.high_f = high_value
             try:
-                low_value = self._sample_field([site], low_hour, "TMIN")[site.name]
+                low_value = self._sample_field([site], low_hour, "TMIN", converter=kelvin_to_f)[site.name]
                 record_low = records.setdefault(
                     target_day,
                     SourceDailyRecord(
@@ -195,5 +231,20 @@ class NBMIngestor:
                 record_low.low_f = low_value
             except Exception as exc:
                 LOGGER.warning("Unable to sample TMIN for day %s: %s", day_idx, exc)
+            pop_hours = {max(day_idx * 24 + FIELD_WINDOW_HOURS, FIELD_WINDOW_HOURS), (day_idx + 1) * 24}
+            pop_values: List[float] = []
+            qpf_total_inches = 0.0
+            for fhour in pop_hours:
+                pop_val = self._sample_optional(site, fhour, "POP12")
+                if pop_val is not None:
+                    pop_values.append(pop_val)
+                qpf_mm = self._sample_optional(site, fhour, "APCP")
+                if qpf_mm is not None:
+                    qpf_total_inches += mm_to_inches(qpf_mm)
+            if pop_values:
+                best_pop = max(pop_values)
+                rec.pop_pct = max(rec.pop_pct or 0, best_pop)
+            if qpf_total_inches > 0:
+                self._append_note(rec, f"NBM QPF {qpf_total_inches:.2f}\"")
         ordered = sorted(records.keys())[: self.days]
         return [records[d] for d in ordered]

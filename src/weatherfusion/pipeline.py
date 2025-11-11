@@ -8,6 +8,7 @@ from typing import Dict, List
 from .config import AppSettings
 from .ingest.cache import CacheManager
 from .ingest.grib import NBMIngestor
+from .ingest.gridpoint import GridpointIngestor
 from .ingest.rss import RSSIngestor
 from .models import RunSummary
 from .processing.ensemble import build_site_ensembles
@@ -20,19 +21,23 @@ from .util.logging import setup_logging
 LOGGER = logging.getLogger(__name__)
 
 
-def _ingestor_order(settings: AppSettings, nbm: NBMIngestor, rss: RSSIngestor) -> List:
+def _ingestor_order(settings: AppSettings, nbm: NBMIngestor, grid: GridpointIngestor, rss: RSSIngestor) -> List:
     order: List = []
     if settings.primary_ingest == "PUBLIC_FILES":
-        order.append(nbm)
+        order.extend([nbm, grid])
         if settings.rss_fallback:
             order.append(rss)
     else:
-        order.append(rss)
+        order.extend([rss, grid])
         if settings.rss_fallback:
             order.append(nbm)
-    if len(order) == 1 and order[0] is rss and settings.primary_ingest == "PUBLIC_FILES":
-        order.append(nbm)
-    return order
+    dedup: List = []
+    seen = set()
+    for ingestor in order:
+        if ingestor not in seen:
+            dedup.append(ingestor)
+            seen.add(ingestor)
+    return dedup
 
 
 def run_pipeline(settings: AppSettings) -> RunSummary:
@@ -42,6 +47,7 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
     cache = CacheManager(cache_root, 0 if settings.no_cache else settings.cache_ttl_hours)
 
     nbm = NBMIngestor(session, cache, settings.days, settings.tzinfo)
+    grid = GridpointIngestor(session, cache, settings.days, settings.tzinfo)
     rss = RSSIngestor(settings, session, cache)
 
     site_map = {
@@ -53,7 +59,7 @@ def run_pipeline(settings: AppSettings) -> RunSummary:
     sources_ok: Dict[str, List[str]] = {settings.home.name: [], settings.work.name: []}
     sources_failed: Dict[str, List[str]] = {settings.home.name: [], settings.work.name: []}
 
-    for ingestor in _ingestor_order(settings, nbm, rss):
+    for ingestor in _ingestor_order(settings, nbm, grid, rss):
         for site_name, site in site_map.items():
             try:
                 site_data = ingestor.fetch(site)
