@@ -4,249 +4,141 @@
   <meta charset="utf-8" />
   <title>EHS 10-Day Forecast</title>
   <style>
-    :root {
-      color-scheme: light dark;
-      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-      --surface: rgba(255, 255, 255, 0.92);
-      --shadow: 0 14px 32px rgba(15, 23, 42, 0.2);
-      --muted: rgba(15, 23, 42, 0.6);
-      --divider: rgba(148, 163, 184, 0.35);
-    }
     body {
       margin: 0;
       padding: 0;
-      background: radial-gradient(circle at top, #0b1126, #020617);
-      color: #f8fafc;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
       line-height: 1.4;
-      font-kerning: normal;
     }
-    .page {
-      width: 960px;
-      max-width: 960px;
+    .wrapper {
+      max-width: 640px;
       margin: 0 auto;
-      padding: 2rem;
-    }
-    a {
-      color: #60a5fa;
-    }
-    .page-header h1 {
-      margin: 0 0 0.35rem 0;
-      font-size: 1.9rem;
-    }
-    .meta-line {
-      margin: 0 0 1rem 0;
-      font-size: 0.95rem;
-      opacity: 0.85;
-    }
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 0.8rem;
-      margin-bottom: 1.5rem;
-    }
-    .meta-card {
-      background: rgba(15, 23, 42, 0.15);
-      border-radius: 16px;
-      padding: 0.9rem 1.1rem;
-    }
-    .meta-label {
-      font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-    }
-    .meta-value {
-      font-size: 1rem;
-      font-weight: 600;
-    }
-    .meta-sub {
-      font-size: 0.82rem;
-      color: var(--muted);
-      margin-top: 0.2rem;
-    }
-    .grid {
-      display: flex; /* more broadly supported than CSS grid in some renderers */
-      flex-direction: column; /* stack sections for clearer screenshots */
-      gap: 1.5rem;
+      padding: 24px 16px 32px;
     }
     .card {
-      background: var(--surface);
-      color: #0f172a;
-      border-radius: 22px;
-      padding: 1.6rem;
-      box-shadow: var(--shadow);
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 3px 12px rgba(15, 23, 42, 0.08);
     }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 1.2rem;
-      align-items: flex-start;
+    .card + .card {
+      margin-top: 16px;
     }
-    .card-header h2 {
+    h1, h2, h3 {
       margin: 0;
-      font-size: 1.4rem;
-    }
-    .subtitle {
-      margin: 0.2rem 0 0 0;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-    .sparkline {
-      width: 220px;
-      min-width: 180px;
-    }
-    table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      margin-top: 1rem;
-      font-size: 0.92rem;
-    }
-    thead th {
-      text-align: left;
-      padding: 0.5rem;
-      background: rgba(2, 6, 23, 0.85);
-      color: #e2e8f0;
       font-weight: 600;
-      position: sticky;
-      top: 0;
+      color: #111827;
     }
-    tbody td {
-      border-bottom: 1px solid var(--divider);
-      padding: 0.65rem 0.5rem;
-      vertical-align: top;
+    h1 {
+      font-size: 1.3rem;
     }
-    tbody tr:last-child td {
-      border-bottom: none;
-    }
-    .date-cell {
-      font-weight: 600;
-      width: 140px;
-    }
-    .confidence-pill {
-      margin-top: 0.3rem;
-      display: inline-flex;
-      padding: 0.1rem 0.5rem;
-      font-size: 0.75rem;
-      border-radius: 999px;
-      background: rgba(251, 191, 36, 0.25);
-      color: #92400e;
-      font-weight: 600;
-    }
-    .temp-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-      font-variant-numeric: tabular-nums;
-    }
-    .temp {
-      font-size: 1rem;
-      padding: 0.15rem 0.35rem;
-      border-radius: 8px;
-      width: fit-content;
-    }
-    .temp.high {
-      background: rgba(239, 68, 68, 0.15);
-      color: #b91c1c;
-    }
-    .temp.low {
-      background: rgba(59, 130, 246, 0.2);
-      color: #1d4ed8;
-    }
-    .pop-pill {
-      margin-top: 0.15rem;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-    .wx-cell .chip {
-      margin-bottom: 0.3rem;
-    }
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.15rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      background: rgba(15, 23, 42, 0.08);
-      color: #0f172a;
-    }
-    .chip.info {
-      background: rgba(59, 130, 246, 0.18);
-      color: #1d4ed8;
-    }
-    .chip.danger {
-      background: rgba(220, 38, 38, 0.18);
-      color: #b91c1c;
-    }
-    .notes {
-      font-size: 0.85rem;
-      color: #1e293b;
-      line-height: 1.35;
-    }
-    .ehs-block {
-      margin-bottom: 0.6rem;
-    }
-    .ehs-label {
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-size: 0.7rem;
-      color: var(--muted);
-      display: block;
+    h2 {
+      font-size: 1.1rem;
       margin-bottom: 0.2rem;
     }
-    .micro {
+    h3 {
+      font-size: 0.98rem;
+      margin-bottom: 0.25rem;
+    }
+    .meta {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin: 0.15rem 0;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-top: 0.4rem;
+    }
+    .table th {
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      padding: 0 4px 6px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .table td {
+      padding: 10px 4px;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+    }
+    .table tr:last-child td {
+      border-bottom: 0;
+    }
+    .date-label {
+      font-weight: 600;
+      color: #111827;
+    }
+    .small {
       font-size: 0.78rem;
-      color: var(--muted);
+      color: #6b7280;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      border: 1px solid transparent;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+    .badge.low {
+      border-color: #fca5a5;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    .badge.info {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .badge.heat {
+      border-color: #fdba74;
+      background: #fff7ed;
+      color: #9a3412;
+    }
+    .badge.freeze {
+      border-color: #a5f3fc;
+      background: #ecfeff;
+      color: #0e7490;
+    }
+    .badge.tight {
+      margin-right: 4px;
+    }
+    .source-list {
+      font-size: 0.76rem;
+      color: #6b7280;
       margin-top: 0.2rem;
     }
-    .source-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
+    .empty {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin: 0.3rem 0 0;
     }
-    .source-chip {
-      background: rgba(15, 23, 42, 0.08);
-      color: #0f172a;
-      font-size: 0.78rem;
-      padding: 0.15rem 0.5rem;
-      border-radius: 10px;
-      font-weight: 600;
-    }
-    .source-foot {
-      margin-top: 0.3rem;
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
-    .no-data {
-      margin-top: 1rem;
-      padding: 2rem;
-      text-align: center;
-      font-weight: 600;
-      border: 1px dashed rgba(148, 163, 184, 0.7);
-      border-radius: 18px;
-    }
-    .legend {
-      margin-top: 1rem;
-      font-size: 0.82rem;
-      color: var(--muted);
-    }
-    tbody tr:nth-child(odd) td {
-      background: rgba(2, 6, 23, 0.03);
-    }
-    tbody tr:hover td {
-      background: rgba(30, 58, 138, 0.07);
-    }
-    .legend ul {
-      padding-left: 1.2rem;
-      margin: 0.4rem 0 0 0;
+    .alert-block {
+      margin-top: 0.8rem;
+      border-left: 3px solid #f97316;
+      padding-left: 10px;
     }
     .alert-block ul {
-      list-style: disc;
+      margin: 0.2rem 0 0 0;
+      padding-left: 1.1rem;
+      font-size: 0.85rem;
+      color: #6b7280;
     }
     .alert-block li {
       margin-bottom: 0.25rem;
+    }
+    .lightning-note {
+      margin-top: 0.6rem;
+      font-size: 0.82rem;
+      color: #92400e;
     }
   </style>
 </head>
@@ -254,88 +146,56 @@
   {% set source_names = {
     'nbm_grib': 'NBM · CONUS',
     'nws_rss': 'NWS MapClick',
-    'nws_gridpoint': 'NWS Gridpoint'
+    'nws_gridpoint': 'NWS Gridpoint',
+    'nws_ndfd': 'NWS NDFD'
   } %}
   {% macro source_label(code) -%}
     {{ source_names.get(code, code.replace('_', ' ').title()) }}
   {%- endmacro %}
 
-  <main class="page">
-    <header class="page-header">
-      <h1>EHS 10-Day Forecast — Home &amp; Work</h1>
-      <p class="meta-line">
-        Generated {{ generated_at.astimezone().strftime('%Y-%m-%d %H:%M %Z') }} ·
-        Sources OK: {{ meta.get('sources_ok_display') }} ·
-        Sources Failed: {{ meta.get('sources_failed_display') }}
-      </p>
-      <div class="meta-grid" aria-label="source summary">
-        {% for label in [home_label, work_label] %}
-          <div class="meta-card">
-            <div class="meta-label">{{ label }} sources</div>
-            <div class="meta-value">{{ meta['sources_ok'].get(label, '—') }}</div>
-            <div class="meta-sub">Fallback: {{ meta['sources_failed'].get(label, '—') }}</div>
-          </div>
-        {% endfor %}
-      </div>
-    </header>
+  <div class="wrapper">
+    <section class="card">
+      <h1>EHS 10-Day Forecast</h1>
+      <p class="meta">Generated {{ generated_at.astimezone().strftime('%Y-%m-%d %H:%M %Z') }}</p>
+      <p class="meta">Sources OK — {{ meta.get('sources_ok_display') }}</p>
+      <p class="meta">Fallback — {{ meta.get('sources_failed_display') }}</p>
+    </section>
 
-    <div class="grid">
-      {% for title, site in [(home_label, home), (work_label, work)] %}
-        {% set rows = site.rows %}
-        {% set site_alerts = alerts.get(title, []) %}
-        <section class="card" aria-label="{{ title }} outlook">
-          <div class="card-header">
-            <div>
-              <h2>{{ title }}</h2>
-              <p class="subtitle">10-day outlook</p>
-            </div>
-            {% if site.spark_high.d %}
-              <div class="sparkline" aria-hidden="true">
-                <svg width="240" height="70" viewBox="0 0 240 56" role="img" aria-label="{{ title }} temperature trend">
-                  <path d="{{ site.spark_low.d }}" fill="none" stroke="rgba(59,130,246,0.7)" stroke-width="2.5" />
-                  <path d="{{ site.spark_high.d }}" fill="none" stroke="rgba(239,68,68,0.85)" stroke-width="2.5" />
-                </svg>
-              </div>
-            {% endif %}
-          </div>
-
-          {% if rows %}
-          <table role="table" aria-label="{{ title }} forecast table">
+    {% for title, site in [(home_label, home), (work_label, work)] %}
+      {% set rows = site.rows %}
+      {% set site_alerts = alerts.get(title, []) %}
+      <section class="card">
+        <h2>{{ title }}</h2>
+        <p class="meta">10-day outlook snapshot</p>
+        {% if rows %}
+          <table class="table" role="table" aria-label="{{ title }} forecast table">
             <thead>
               <tr>
                 <th scope="col">Date</th>
                 <th scope="col">Temps</th>
-                <th scope="col">Wx &amp; Notes</th>
-                {% if title == work_label %}
-                  <th scope="col">Heat</th>
-                  <th scope="col">Freeze</th>
-                {% endif %}
+                <th scope="col">Details</th>
                 <th scope="col">Sources</th>
               </tr>
             </thead>
             <tbody>
               {% for row in rows %}
-              <tr>
-                <td class="date-cell">
-                  {{ row.label }}
-                  {% if row.low_confidence %}
-                    <div class="confidence-pill">Low confidence</div>
-                  {% endif %}
-                </td>
-                <td>
-                  <div class="temp-stack">
-                    <div class="temp high">{{ format_temp(row.high_f) }}</div>
-                    <div class="temp low">{{ format_temp(row.low_f) }}</div>
-                    <div class="pop-pill">PoP {{ format_pop(row.pop_pct) }}</div>
-                  </div>
-                </td>
-                <td class="wx-cell">
-                  {% if row.precip_type %}
-                    <span class="chip info">{{ row.precip_type }}</span>
-                  {% endif %}
-                  <div class="notes">
-                    {{ row.precip_notes or '—' }}
-                    <div class="micro">
+                <tr>
+                  <td>
+                    <div class="date-label">{{ row.label }}</div>
+                    {% if row.low_confidence %}
+                      <span class="badge low">Low confidence</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div><strong>{{ format_temp(row.high_f) }}</strong> / {{ format_temp(row.low_f) }}</div>
+                    <div class="small">PoP {{ format_pop(row.pop_pct) }}</div>
+                  </td>
+                  <td>
+                    {% if row.precip_type %}
+                      <span class="badge info">{{ row.precip_type }}</span>
+                    {% endif %}
+                    <div>{{ row.precip_notes or '—' }}</div>
+                    <div class="small">
                       {% if row.precip_consensus %}{{ row.precip_consensus }}{% endif %}
                       {% if row.precip_consensus and (row.qpf_inches or row.snow_inches or row.ice_inches) %} · {% endif %}
                       {% if row.qpf_inches %}Liquid {{ format_amount(row.qpf_inches) }}{% endif %}
@@ -348,74 +208,59 @@
                         Ice {{ format_amount(row.ice_inches) }}
                       {% endif %}
                     </div>
-                  </div>
-                </td>
-                {% if title == work_label %}
-                <td>
-                  <div class="ehs-block">
-                    <span class="ehs-label">Heat</span>
-                    {% if row.heat_category %}
-                      <span class="chip danger">{{ row.heat_category }}</span>
-                      <div class="micro">Work/rest {{ row.heat_guidance.get('work_rest_min') }} · Hydration {{ row.heat_guidance.get('hydration_cups_per_min') }}</div>
-                    {% else %}
-                      <div class="micro">Baseline precautions</div>
+                    {% if title == work_label %}
+                      {% if row.heat_category %}
+                        <span class="badge heat tight">Heat {{ row.heat_category }}</span>
+                        <div class="small">Work/rest {{ row.heat_guidance.get('work_rest_min') }} · Hydration {{ row.heat_guidance.get('hydration_cups_per_min') }}</div>
+                      {% endif %}
+                      {% if row.freeze_risk_badge %}
+                        <span class="badge freeze tight">{{ row.freeze_risk_badge }}</span>
+                        <div class="small">{{ row.freeze_guidance or 'Freeze precautions recommended' }}</div>
+                      {% endif %}
                     {% endif %}
-                  </div>
-                </td>
-                <td>
-                  <div class="ehs-block">
-                    <span class="ehs-label">Freeze</span>
-                    {% if row.freeze_risk_badge %}
-                      <span class="chip info">{{ row.freeze_risk_badge }}</span>
-                      <div class="micro">{{ row.freeze_guidance }}</div>
-                    {% else %}
-                      <div class="micro">No freeze risk</div>
-                    {% endif %}
-                  </div>
-                </td>
-                {% endif %}
-                <td>
-                  <div class="source-chips">
-                    {% for src in row.sources %}
-                      <span class="source-chip">{{ source_label(src) }}</span>
-                    {% endfor %}
-                  </div>
-                  <div class="source-foot">
-                    {{ row.sources_count }} source{{ '' if row.sources_count == 1 else 's' }}
-                    {% if row.low_confidence %}· verify against NWS{% endif %}
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                  <td>
+                    <div class="small">{{ row.sources_count }} source{{ '' if row.sources_count == 1 else 's' }}</div>
+                    <div class="source-list">
+                      {% if row.sources %}
+                        {% for src in row.sources %}
+                          {{ source_label(src) }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
-          {% else %}
-            <div class="no-data">No data available — see <a href="https://www.weather.gov" target="_blank" rel="noopener">NWS</a></div>
-          {% endif %}
+        {% else %}
+          <p class="empty">No data available for this location.</p>
+        {% endif %}
 
         {% if title == work_label and rows and rows[0].lightning_note %}
-          <p class="legend">⚡ {{ rows[0].lightning_note }}</p>
+          <div class="lightning-note">⚡ {{ rows[0].lightning_note }}</div>
         {% endif %}
+
         {% if site_alerts %}
-          <div class="legend alert-block">
-            <strong>Active alerts</strong>
+          <div class="alert-block">
+            <h3>Active alerts for {{ title }}</h3>
             <ul>
               {% for alert in site_alerts %}
                 <li>
                   {{ alert.headline }} — {{ alert.severity }}
                   {% if alert.expires %}(until {{ alert.expires.strftime('%b %d %H:%M %Z') }}){% endif %}
                   {% if alert.instruction %}
-                    <div class="micro">{{ alert.instruction }}</div>
+                    <div class="small">{{ alert.instruction }}</div>
                   {% endif %}
                 </li>
               {% endfor %}
             </ul>
           </div>
         {% endif %}
-          {# removed stray endif after deleting Freeze reminders block #}
-        </section>
-      {% endfor %}
-    </div>
-  </main>
+      </section>
+    {% endfor %}
+  </div>
 </body>
 </html>
